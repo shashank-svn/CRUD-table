@@ -1,5 +1,6 @@
 import { AfterViewInit, Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { Subscription } from 'rxjs';
+import {SelectionModel} from '@angular/cdk/collections';
 
 import { MatPaginator } from '@angular/material/paginator';
 import { MatTableDataSource } from '@angular/material/table';
@@ -19,19 +20,16 @@ export class TableComponent implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild(MatPaginator, {static: false}) paginator: MatPaginator;
   @ViewChild(MatSort, {static: false}) sort: MatSort;
 
-  public displayedColumns: string[] = ['id', 'firstName', 'lastName', 'age', 'job', 'experience'];
+  public displayedColumns: string[] = ['checkBox', 'id', 'firstName', 'lastName', 'age', 'job', 'experience', 'fileName'];
   public columnsToDisplay: string[] = [...this.displayedColumns, 'actions'];
-
-  /**
-   * it holds a list of active filter for each column.
-   * example : {firstName: {contains : 'person 1'}}
-   **/
+  public selectedRows: number[] = [];
   public columnsFilters = {};
-
+  public selectAllCheckbox;
+  selection = new SelectionModel<Person>(true, []);
   public dataSource: MatTableDataSource<Person>;
   private serviceSubscribe: Subscription;
 
-  constructor(private personsService: PersonService, public dialog: MatDialog) {
+  constructor(private personService: PersonService, public dialog: MatDialog) {
     this.dataSource = new MatTableDataSource<Person>();
   }
 
@@ -127,38 +125,93 @@ export class TableComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
+    /** Whether the number of selected elements matches the total number of rows. */
+    isAllSelected() {
+      const numSelected = this.selection.selected.length;
+      const numRows = this.dataSource.data.length;
+      return numSelected === numRows;
+    }
+  
+    /** Selects all rows if they are not all selected; otherwise clear selection. */
+    masterToggle() {
+      this.isAllSelected() ?
+          this.selection.clear() :
+          this.dataSource.data.forEach(row => this.selection.select(row));
+    }
 
-  edit(person: Person) {
-    const dialogRef = this.dialog.open(FormModalComponent, {
-      width: '400px',
-      data: {
-        person: person,
-        action: "Edit"
-      }
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        this.personsService.edit(result);
+  getOccupations(person?: Person)  {
+    this.personService.getOccupations().subscribe((occupationArr: string[]) => {
+      if(person) {
+        this.edit(person, occupationArr)
+      } else {
+        this.add(occupationArr);
       }
     });
   }
 
-  add() {
-    let person = new Person();
+  selectAllRows() {
+    this.selectedRows = [];
+    this.dataSource.data.forEach((person: Person) => {
+      this.selectedRows.push(person.id);
+    });
+  }
+
+  edit(person: Person, incomingOccupations: string[]) {
     const dialogRef = this.dialog.open(FormModalComponent, {
       width: '400px',
       data: {
         person: person,
-        action: "Add"
-      },
+        action: "Edit",
+        occupationArr: incomingOccupations
+      }
     });
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.personsService.add(result);
+        this.personService.edit(result);
       }
     });
+  }
+
+  downloadPdf(incomingId: number){
+    let personById: Person =  this.personService.getPersonById(incomingId);
+    let base64String = personById.fileBase64.split('base64')[1];
+    if(window.navigator && window.navigator.msSaveOrOpenBlob){ 
+      // download PDF in IE
+      let byteChar = atob(base64String);
+      let byteArray = new Array(byteChar.length);
+      for(let i = 0; i < byteChar.length; i++){
+        byteArray[i] = byteChar.charCodeAt(i);
+      }
+      let uIntArray = new Uint8Array(byteArray);
+      let blob = new Blob([uIntArray], {type : 'application/pdf'});
+      window.navigator.msSaveOrOpenBlob(blob, `${personById.fileName}.pdf`);
+    } else {
+      // Download PDF in Chrome etc.
+      const source = `data:application/pdf;base64${base64String}`;
+      const link = document.createElement("a");
+      link.href = source;
+      link.download = `${personById.fileName}.pdf`
+      link.click();
+    }
+  }
+
+  add(incomingOccupations: string[]) {
+      let person = new Person();
+      const dialogRef = this.dialog.open(FormModalComponent, {
+        width: '400px',
+        data: {
+          person: person,
+          action: "Add",
+          occupationArr: incomingOccupations
+        },
+      });
+  
+      dialogRef.afterClosed().subscribe(result => {
+        if (result) {
+          this.personService.add(result);
+        }
+      });
   }
 
   delete(id: any) {
@@ -166,7 +219,7 @@ export class TableComponent implements OnInit, OnDestroy, AfterViewInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.personsService.remove(id);
+        this.personService.remove(id);
       }
     });
   }
@@ -180,8 +233,8 @@ export class TableComponent implements OnInit, OnDestroy, AfterViewInit {
    * initialize data-table by providing persons list to the dataSource.
    */
   ngOnInit(): void {
-    this.personsService.getAll();
-    this.serviceSubscribe = this.personsService.persons$.subscribe(res => {
+    this.personService.getAll().subscribe((status) => {});
+    this.serviceSubscribe = this.personService.persons$.subscribe(res => {
       this.dataSource.data = res;
     })
   }

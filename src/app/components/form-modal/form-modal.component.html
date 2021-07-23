@@ -1,54 +1,121 @@
-<h1 mat-dialog-title>{{action}} Person</h1>
+<h1 mat-dialog-title>{{ action }} Person</h1>
 <div mat-dialog-content>
   <form [formGroup]="formInstance">
     <div>
       <mat-form-field class="fullWidth" appearance="outline">
         <mat-label>Id *</mat-label>
-        <input matInput type="text" name="id" formControlName="id">
-        <mat-error *ngIf="formInstance.controls['id']?.errors?.required">field required</mat-error>
+        <input matInput type="text" name="id" formControlName="id" />
+        <mat-error *ngIf="formInstance.controls['id']?.errors?.required || !isIdUnique()"
+          >field required</mat-error
+        >
       </mat-form-field>
+      <div *ngIf="!isIdUnique()" class="idNotUniqueErrMsg"
+      >Id should be unique. Eneterd Id already taken.</div
+    >
     </div>
     <div>
       <mat-form-field class="fullWidth" appearance="outline">
         <mat-label>First Name *</mat-label>
-        <input matInput type="text" name="firstName" formControlName="firstName">
-        <mat-error *ngIf="formInstance.controls['firstName']?.errors?.required">field required</mat-error>
+        <input
+          matInput
+          type="text"
+          name="firstName"
+          formControlName="firstName"
+        />
+        <mat-error *ngIf="formInstance.controls['firstName']?.errors?.required"
+          >field required</mat-error
+        >
       </mat-form-field>
     </div>
     <div>
       <mat-form-field class="fullWidth" appearance="outline">
         <mat-label>Last Name *</mat-label>
-        <input matInput type="text" name="lastName" formControlName="lastName">
-        <mat-error *ngIf="formInstance.controls['lastName']?.errors?.required">field required</mat-error>
+        <input
+          matInput
+          type="text"
+          name="lastName"
+          formControlName="lastName"
+        />
+        <mat-error *ngIf="formInstance.controls['lastName']?.errors?.required"
+          >field required</mat-error
+        >
       </mat-form-field>
     </div>
     <div class="mt-5">
       <mat-form-field class="fullWidth" appearance="outline">
         <mat-label>Age *</mat-label>
         <input matInput type="number" name="age" formControlName="age" />
-        <mat-error *ngIf="formInstance.controls['age']?.errors?.required">field required</mat-error>
+        <mat-error *ngIf="formInstance.controls['age']?.errors?.required"
+          >field required</mat-error
+        >
       </mat-form-field>
     </div>
     <div class="mt-5">
       <mat-form-field class="fullWidth" appearance="outline">
         <mat-label>Job *</mat-label>
         <mat-select name="job" formControlName="job">
-          <mat-option *ngFor = "let occupation of occupations" [value]="occupation">{{occupation}}</mat-option>
+          <mat-option
+            *ngFor="let occupation of occupations"
+            [value]="occupation"
+            >{{ occupation }}</mat-option
+          >
         </mat-select>
-        <mat-error *ngIf="formInstance.controls['job']?.errors?.required">field required</mat-error>
+        <mat-error *ngIf="formInstance.controls['job']?.errors?.required"
+          >field required</mat-error
+        >
       </mat-form-field>
     </div>
     <div class="mt-5">
       <mat-form-field class="fullWidth" appearance="outline">
         <mat-label>Experience *</mat-label>
-        <input matInput type="number" name="experience" formControlName="experience" />
-        <mat-error *ngIf="formInstance.controls['experience']?.errors?.required">field required</mat-error>
+        <input
+          matInput
+          type="number"
+          name="experience"
+          formControlName="experience"
+        />
+        <mat-error *ngIf="formInstance.controls['experience']?.errors?.required"
+          >field required</mat-error
+        >
       </mat-form-field>
+    </div>
+    <div class="mt-5">
+      <button mat-raised-button color="primary" (click)="onClick($event)">
+        <mat-icon>add</mat-icon>
+        {{ chooseLabel }}
+      </button>
+      <mat-label style = "margin-left: 10px;">Resume *(Format PDF only)</mat-label>
+      <input
+        #fileUpload
+        type="file"
+        class="input_fileupload--hidden"
+        (input)="onInput($event)"
+        (change)="onFileSelected($event)"
+        accept="application/pdf"
+      />
+
+      <div *ngFor="let f of files">
+        <span>{{ f.name }}</span>
+        <button
+          mat-icon-button
+          color="primary"
+          (click)="removeFile($event, f)"
+        >
+          <mat-icon>{{ deleteButtonIcon }}</mat-icon>
+        </button>
+      </div>
     </div>
   </form>
 </div>
 <div class="mt-5" mat-dialog-actions>
-  <button mat-raised-button color="primary" [disabled]="formInstance.dirty && formInstance.errors" (click)="save()"
-    cdkFocusInitial>Yes</button>
+  <button
+    mat-raised-button
+    color="primary"
+    [disabled]="!formInstance.valid || !isIdUnique()"
+    (click)="save()"
+    cdkFocusInitial
+  >
+    Yes
+  </button>
   <button mat-raised-button mat-dialog-close>No</button>
 </div>

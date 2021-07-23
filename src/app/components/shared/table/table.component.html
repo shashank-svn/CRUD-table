@@ -1,47 +1,99 @@
 <div class="mat-elevation-z8 container">
-  <ng-container>
-    <button mat-icon-button (click)="add()">
-      <span class="addPersonTag">Add Person</span>
-      <mat-icon mat-icon-button color='primary'>add</mat-icon>
-    </button>
-  </ng-container>
+  <div class="buttonsContainer row">
+    <div class="col-12">
+      <button mat-icon-button (click)="getOccupations()">
+        <span class="addPersonTag">Add Person</span>
+        <mat-icon mat-icon-button color="primary">add</mat-icon>
+      </button>
+    </div>
+  </div>
   <table mat-table [dataSource]="dataSource" matSort class="mat-elevation-z8">
-    <ng-container *ngFor="let column of displayedColumns" [matColumnDef]="column">
+    <!-- Checkbox Column -->
+    <ng-container matColumnDef="select">
       <th mat-header-cell *matHeaderCellDef>
-        <div style="display: flex; align-items: center;">
-          <span mat-sort-header>{{column.toString().toUpperCase()}}</span>
+        <mat-checkbox
+          (change)="$event ? masterToggle() : null"
+          [checked]="selection.hasValue() && isAllSelected()"
+          [indeterminate]="selection.hasValue() && !isAllSelected()"
+        >
+        </mat-checkbox>
+      </th>
+
+    </ng-container>
+
+    <ng-container
+      *ngFor="let column of displayedColumns"
+      [matColumnDef]="column"
+    >
+      <th mat-header-cell *matHeaderCellDef>
+        <div
+          style="display: flex; align-items: center"
+          *ngIf="column !== 'checkBox'"
+        >
+          <span mat-sort-header>{{ column.toString().toUpperCase() }}</span>
           <button mat-icon-button>
-            <mat-icon mat-icon-button color="primary" [matMenuTriggerFor]="menu"
-              [matMenuTriggerData]="{columnName: column}">filter_list </mat-icon>
+            <mat-icon
+              mat-icon-button
+              color="primary"
+              [matMenuTriggerFor]="menu"
+              [matMenuTriggerData]="{ columnName: column }"
+              >filter_list
+            </mat-icon>
           </button>
         </div>
+        <mat-checkbox color="primary"
+          *ngIf="column === 'checkBox'"
+          (change)="$event ? masterToggle() : null"
+          [checked]="selection.hasValue() && isAllSelected()"
+          [indeterminate]="selection.hasValue() && !isAllSelected()"
+        >
+        </mat-checkbox>
       </th>
-      <td mat-cell *matCellDef="let element"> {{element[column]}} </td>
+      <td mat-cell *matCellDef="let element">
+        <div *ngIf="column !== 'checkBox'">{{ element[column] }}</div>
+        <mat-checkbox *ngIf="column === 'checkBox'" color="primary"
+        (click)="$event.stopPropagation()"
+        (change)="$event ? selection.toggle(element) : null"
+        [checked]="selection.isSelected(element)"
+      >
+      </mat-checkbox>
+      </td>
     </ng-container>
 
     <ng-container [matColumnDef]="'actions'">
-      <th mat-header-cell *matHeaderCellDef> actions </th>
+      <th mat-header-cell *matHeaderCellDef>actions</th>
       <td mat-cell *matCellDef="let element">
-        <button mat-icon-button (click)="edit(element)">
-          <mat-icon mat-icon-button color='primary'>edit</mat-icon>
+        <button mat-icon-button (click)="getOccupations(element)">
+          <mat-icon mat-icon-button color="primary">edit</mat-icon>
         </button>
         <button mat-icon-button (click)="delete(element['id'])">
           <mat-icon mat-icon-button color="warn">delete</mat-icon>
         </button>
+        <button
+          style="margin-left: 10px"
+          mat-raised-button
+          color="primary"
+          (click)="downloadPdf(element['id'])"
+        >
+          Download Resume
+        </button>
       </td>
     </ng-container>
     <tr mat-header-row *matHeaderRowDef="columnsToDisplay"></tr>
-    <tr mat-row *matRowDef="let row; columns: columnsToDisplay;"></tr>
+    <tr mat-row *matRowDef="let row; columns: columnsToDisplay"></tr>
   </table>
-  <mat-paginator [pageSize]="5" [pageSizeOptions]="[5, 10, 50]" showFirstLastButtons></mat-paginator>
+  <mat-paginator
+    [pageSize]="5"
+    [pageSizeOptions]="[5, 10, 50]"
+    showFirstLastButtons
+  ></mat-paginator>
 </div>
 
 <!-- menu for column filtering-->
 <mat-menu #menu="matMenu" class="matMenu">
   <ng-template matMenuContent let-dataColumnName="columnName">
-    <div class="flex-column" (click)="$event.stopPropagation();">
+    <div class="flex-column" (click)="$event.stopPropagation()">
       <div class="mb-5">
-
         <mat-form-field class="fullWidth" appearance="outline">
           <mat-label>Choose a filter *</mat-label>
           <mat-select #selectedOperationFilter [value]="'contains'">
@@ -53,23 +105,36 @@
             <mat-option value="startWith">Start With</mat-option>
           </mat-select>
         </mat-form-field>
-
       </div>
       <div class="mb-5 fullWidth">
         <mat-form-field class="fullWidth" appearance="outline">
           <mat-label>write a value*</mat-label>
-          <input matInput #searchValue type="text">
+          <input matInput #searchValue type="text" />
         </mat-form-field>
       </div>
       <div class="fullWidth flex-row mb-5 flex-justify-space-between">
-        <button [disabled]="!searchValue.value" mat-raised-button color="primary"
+        <button
+          [disabled]="!searchValue.value"
+          mat-raised-button
+          color="primary"
           class="flex-row flex-align-center btn-filter-action"
-          (click)="applyFilter(dataColumnName, selectedOperationFilter.value,  searchValue.value)">
+          (click)="
+            applyFilter(
+              dataColumnName,
+              selectedOperationFilter.value,
+              searchValue.value
+            )
+          "
+        >
           <mat-icon>check</mat-icon>
           <label>filter</label>
         </button>
-        <button mat-raised-button class="flex-row flex-align-center btn-filter-action" color="warn"
-          (click)="clearFilter(dataColumnName)">
+        <button
+          mat-raised-button
+          class="flex-row flex-align-center btn-filter-action"
+          color="warn"
+          (click)="clearFilter(dataColumnName)"
+        >
           <mat-icon>clear</mat-icon>
           <label>reset</label>
         </button>
